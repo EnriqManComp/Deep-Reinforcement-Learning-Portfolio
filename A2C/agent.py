@@ -11,6 +11,7 @@ class Agent():
             n_actions= action_dim,
             fc1= 1024,
             fc2= 512,
+            learning_rate= learning_rate,
             model_name= "A2C_model",
             save_root_dir= "model/"
         )

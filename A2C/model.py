@@ -22,7 +22,7 @@ class ActorCriticNetwork(nn.Module):
         self.critic = nn.Linear(fc2, 1)
 
         # Optimizer
-        self.optimizer = torch.optimizer.Adam(self.parameters(), lr=learning_rate)
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
         # GPU configuration
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.to(self.device)
@@ -48,3 +48,10 @@ class ActorCriticNetwork(nn.Module):
         V = self.critic(X)
 
         return (V, actor_output)
+
+    def save_checkpoint(self):
+        """
+        Save the model checkpoint.
+        """        
+        torch.save(self.state_dict(), self.save_dir)    
+        print(f"Model saved!!!")
