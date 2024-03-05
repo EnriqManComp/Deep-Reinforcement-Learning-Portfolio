@@ -11,7 +11,7 @@ class Agent():
             fc1= 1024,
             fc2= 512,
             learning_rate= learning_rate,
-            model_name= "A2C_model",
+            model_name= "a2c_model",
             save_root_dir= "model/"
         )
         # Set the learning rate and gamma
@@ -48,9 +48,9 @@ class Agent():
         self.actor_critic_network.optimizer.zero_grad()
 
         # Convert the states and reward to tensors
-        state = torch.tensor(state, dtype=torch.float).to(self.actor_critic_network)
-        next_state = torch.tensor(next_state, dtype=torch.float).to(self.actor_critic_network)
-        reward = torch.tensor(reward, dtype=torch.float).to(self.actor_critic_network)
+        state = torch.tensor(state, dtype=torch.float).to(self.actor_critic_network.device)
+        next_state = torch.tensor(next_state, dtype=torch.float).to(self.actor_critic_network.device)
+        reward = torch.tensor(reward, dtype=torch.float).to(self.actor_critic_network.device)
 
         _, current_value = self.actor_critic_network.forward(state)
         _, next_value = self.actor_critic_network.forward(next_state)

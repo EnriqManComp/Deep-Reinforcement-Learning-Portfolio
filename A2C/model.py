@@ -25,6 +25,7 @@ class ActorCriticNetwork(nn.Module):
         self.optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
         # GPU configuration
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        
         self.to(self.device)
 
     def forward(self, state):
@@ -44,7 +45,7 @@ class ActorCriticNetwork(nn.Module):
 
         # Actor layer
         # Action probabilities        
-        policy_dist = F.softmax(self.actor(X), dim=0)               
+        policy_dist = F.softmax(self.actor(X), dim=-1)               
 
         # Critic layer
         v = self.critic(X)

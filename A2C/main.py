@@ -13,32 +13,32 @@ if __name__=='__main__':
         learning_rate= 0.0001
     )
 
-    figure_file = 'records/results.png'
+    figure_file = 'results.png'
 
     scores = []
-    EPISODES = 1000
+    EPISODES = 2000
 
-    for episode in range(EPISODES):
+    for episode in range(EPISODES):        
         done = False
         truncated = False
         state = env.reset()
         state = state[0]
-        score = 0.0
-        while((not done) or (not truncated)):
+        score = 0.0        
+        while((not done) and (not truncated)):            
             action = agent.policy(state)            
             next_state, reward, done, truncated, _ = env.step(action)
             score += reward            
             agent.learn(state, reward, next_state, done)
-            state = next_state
+            state = next_state            
     
-    scores.append(score)
-    avg_score = np.mean(scores[-100:])
-    print("Episode: ", episode, " Score: %.3f", score, " Average score: %.3f", avg_score)
+        scores.append(score)
+        avg_score = np.mean(scores[-100:])
+        print("Episode: ", episode, " Score: %.3f" % score, " Average score: %.3f" % avg_score)
     
-    if avg_score >= 80 and avg_score > 80:
-        agent.actor_critic_network.save_checkpoint()
-    elif episode % 300 == 0:
-        agent.actor_critic_network.save_checkpoint()
+        if score >= -100 and avg_score > -100:
+            agent.actor_critic_network.save_checkpoint()
+        elif episode % 300 == 0:
+            agent.actor_critic_network.save_checkpoint()
 
     x = [i+1 for i in range(EPISODES)]
     plot_learning_curve(x, scores, figure_file)
