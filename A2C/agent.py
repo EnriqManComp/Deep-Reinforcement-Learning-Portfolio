@@ -3,11 +3,10 @@ import torch
 import torch.nn.functional as F
 
 class Agent():
-    def __init__(self, input_dim, action_dim, learning_rate, gamma=0.99):
-        
+    def __init__(self, input_dim, action_dim, learning_rate, gamma=0.99):        
         # Define the actor-critic network
         self.actor_critic_network = ActorCriticNetwork(
-            input_obs= (input_dim),
+            input_obs= [input_dim],
             n_actions= action_dim,
             fc1= 1024,
             fc2= 512,
@@ -18,6 +17,7 @@ class Agent():
         # Set the learning rate and gamma
         self.lr = learning_rate
         self.gamma = gamma
+        self.log_prob = None
 
     def policy(self, state):
         """
@@ -29,21 +29,17 @@ class Agent():
         Returns:
             action (): The action to take.
         """
-
+        
         # Converting the state to a tensor
-        state = torch.tensor([state], dtype=torch.float).to(self.actor_critic_network)
+        state = torch.tensor(state, dtype=torch.float).to(self.actor_critic_network.device)
         # Get the probabilities of the actions
         probabilities, _ = self.actor_critic_network.forward(state)
         # Convert the probabilities to a probability distribution
-        probabilities = F.softmax(probabilities, dim=1)
-        # Create a categorical distribution
-        action_probs = torch.distributions.Categorical(probabilities)
-        # Sample an action from the distribution
-        action = action_probs.sample()
-        # Get the log probability of the action (according to the equation)
-        log_prob = action_probs.log_prob(action)
-        # Store the log probability of the action
-        self.log_prob = log_prob
+        action_probs = torch.distributions.Categorical(probabilities)        
+        # Sample the action
+        action = action_probs.sample()        
+        # Store the log probability
+        self.log_prob = action_probs.log_prob(action)        
         # Return the action
         return action.item()
     
@@ -52,15 +48,15 @@ class Agent():
         self.actor_critic_network.optimizer.zero_grad()
 
         # Convert the states and reward to tensors
-        state = torch.tensor([state], dtype=torch.float).to(self.actor_critic_network)
-        next_state = torch.tensor([next_state], dtype=torch.float).to(self.actor_critic_network)
+        state = torch.tensor(state, dtype=torch.float).to(self.actor_critic_network)
+        next_state = torch.tensor(next_state, dtype=torch.float).to(self.actor_critic_network)
         reward = torch.tensor(reward, dtype=torch.float).to(self.actor_critic_network)
 
         _, current_value = self.actor_critic_network.forward(state)
         _, next_value = self.actor_critic_network.forward(next_state)
 
         # Calculate the advantage
-        delta = reward + self.gamma * next_value * (1 - int(done)) - current_value
+        delta = reward + self.gamma * next_value * (1 - int(done)) - current_value        
 
         # Calculate the actor loss
         actor_loss = -self.log_prob * delta

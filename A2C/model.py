@@ -16,7 +16,7 @@ class ActorCriticNetwork(nn.Module):
         self.dense2 = nn.Linear(fc1, fc2)
 
         # Actor layer
-        self.actor = nn.Linear(fc2, n_actions)
+        self.actor = nn.Linear(fc2, n_actions)        
 
         # Critic layer
         self.critic = nn.Linear(fc2, 1)
@@ -37,17 +37,19 @@ class ActorCriticNetwork(nn.Module):
         Returns:
             tuple: A tuple containing the value of the state (V) and the numerical results of the actor layer (actor_output).
         """
+        
         # Common layers
         X = F.relu(self.dense1(state))
         X = F.relu(self.dense2(X))
 
         # Actor layer
-        actor_output = self.actor(X)
+        # Action probabilities        
+        policy_dist = F.softmax(self.actor(X), dim=0)               
 
         # Critic layer
-        V = self.critic(X)
+        v = self.critic(X)
 
-        return (V, actor_output)
+        return policy_dist, v
 
     def save_checkpoint(self):
         """

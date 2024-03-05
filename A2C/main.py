@@ -5,11 +5,11 @@ from utils import plot_learning_curve
 
 if __name__=='__main__':
     # Create the environment
-    env = gym.make('BipedalWalker-v3')        
+    env = gym.make('MountainCar-v0')        
     
     agent = Agent(
-        input_dim= [env.observation_space.shape[0]],
-        action_dim= env.action_space.shape[0],
+        input_dim= env.observation_space.shape[0],
+        action_dim= env.action_space.n,
         learning_rate= 0.0001
     )
 
@@ -22,12 +22,12 @@ if __name__=='__main__':
         done = False
         truncated = False
         state = env.reset()
-        print(state[0])
+        state = state[0]
         score = 0.0
         while((not done) or (not truncated)):
-            action = agent.policy(state[0])
+            action = agent.policy(state)            
             next_state, reward, done, truncated, _ = env.step(action)
-            score += reward
+            score += reward            
             agent.learn(state, reward, next_state, done)
             state = next_state
     
@@ -35,7 +35,7 @@ if __name__=='__main__':
     avg_score = np.mean(scores[-100:])
     print("Episode: ", episode, " Score: %.3f", score, " Average score: %.3f", avg_score)
     
-    if avg_score >= 250 and avg_score > 200:
+    if avg_score >= 80 and avg_score > 80:
         agent.actor_critic_network.save_checkpoint()
     elif episode % 300 == 0:
         agent.actor_critic_network.save_checkpoint()
