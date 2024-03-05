@@ -67,6 +67,10 @@ class Agent():
         (actor_loss + critic_loss).backward()
         # Optimizer step
         self.actor_critic_network.optimizer.step()        
+
+    def load_model(self):        
+        self.actor_critic_network.load_state_dict(torch.load(f"model/a2c_model"))                          
+        print("Models loaded!")
         
 
 
