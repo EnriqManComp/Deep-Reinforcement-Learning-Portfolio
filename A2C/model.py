@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class ActorCriticNetwork(nn.Module):
-    def __init__(self, input_obs, n_actions, fc1, fc2, learning_rate, model_name, save_root_dir):
+    def __init__(self, n_actions, fc1, fc2, learning_rate, model_name, save_root_dir):
         super(ActorCriticNetwork, self).__init__()
         
         # Set the model name and save root directory
@@ -12,7 +12,11 @@ class ActorCriticNetwork(nn.Module):
         self.save_dir = os.path.join(save_root_dir, model_name)
 
         # Common layers
-        self.dense1 = nn.Linear(*input_obs, fc1)
+        self.conv1 = nn.Conv2d(3, 32, kernel_size=8, stride=4)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
+        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
+        
+        self.dense1 = nn.Linear(352, fc1)
         self.dense2 = nn.Linear(fc1, fc2)
 
         # Actor layer
@@ -40,7 +44,11 @@ class ActorCriticNetwork(nn.Module):
         """
         
         # Common layers
-        X = F.relu(self.dense1(state))
+        X = F.relu(self.conv1(state))        
+        X = F.relu(self.conv2(X))
+        X = F.relu(self.conv3(X))
+        X = X.view(X.size(0), -1)
+        X = F.relu(self.dense1(X))
         X = F.relu(self.dense2(X))
 
         # Actor layer

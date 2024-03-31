@@ -5,7 +5,7 @@ from utils import plot_learning_curve
 
 if __name__=='__main__':
     # Create the environment
-    env = gym.make('MountainCar-v0')        
+    env = gym.make('ALE/Pong-v5')        
     
     agent = Agent(
         input_dim= env.observation_space.shape[0],
@@ -20,7 +20,7 @@ if __name__=='__main__':
 
     save_net_count = 1
 
-    load = True
+    load = False
     if load:
         agent.load_model()       
         #save_net_count =
@@ -28,13 +28,18 @@ if __name__=='__main__':
     for episode in range(1, EPISODES):        
         done = False
         truncated = False
-        state = env.reset()
+        state = env.reset()        
         state = state[0]
-        score = 0.0        
-        while((not done) and (not truncated)):            
+        
+        score = 0.0
+               
+        while((not done) and (not truncated)):
+            #env.render()    
+            state = np.transpose(state, (2, 0, 1))                 
             action = agent.policy(state)           
             next_state, reward, done, truncated, _ = env.step(action)
-            score += reward            
+            score += reward   
+            next_state = np.transpose(next_state, (2, 0, 1))                 
             agent.learn(state, reward, next_state, done)
             state = next_state            
     

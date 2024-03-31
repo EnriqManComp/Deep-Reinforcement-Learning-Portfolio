@@ -5,8 +5,7 @@ import torch.nn.functional as F
 class Agent():
     def __init__(self, input_dim, action_dim, learning_rate, gamma=0.99):        
         # Define the actor-critic network
-        self.actor_critic_network = ActorCriticNetwork(
-            input_obs= [input_dim],
+        self.actor_critic_network = ActorCriticNetwork(            
             n_actions= action_dim,
             fc1= 1024,
             fc2= 512,
