@@ -9,7 +9,7 @@ from torch.distributions.categorical import Categorical
 
 ######## NETWORK ARCHITECTURE
 class ActorNetwork(nn.Module):
-    def __init__(self, n_actions, learning_rate, save_root_dir='./model/'):
+    def __init__(self, n_actions, learning_rate, save_root_dir='../model/'):
         super(ActorNetwork, self).__init__()
         
         # Set the model name and save root directory        
@@ -66,14 +66,14 @@ class ActorNetwork(nn.Module):
         """
         Save the model checkpoint.
         """        
-        T.save(self.state_dict(), self.save_dir)    
+        torch.save(self.state_dict(), self.save_dir)    
         print(f"Model saved!!!")
 
     def load_checkpoint(self):
-        self.load_state_dict(T.load(self.save_dir))
+        self.load_state_dict(torch.load(self.save_dir))
 
 class CriticNetwork(nn.Module):
-    def __init__(self, learning_rate, chkpt_dir='./model/'):
+    def __init__(self, learning_rate, chkpt_dir='../model/'):
         super(CriticNetwork, self).__init__()
 
         self.save_dir = os.path.join(chkpt_dir, "critic_network_ppo")
@@ -130,7 +130,7 @@ class CriticNetwork(nn.Module):
 
 class DRL_algorithm:
 
-    def __init__(self, memory, replay_exp_initial_condition):
+    def __init__(self, memory):
 
         self.training_finished = False
         self.update_network_counter = 1
@@ -196,8 +196,7 @@ class DRL_algorithm:
         # Sampling minibatch                
         for _ in range(self.n_epochs):
             img_state_arr, lidar_state_arr, action_arr, old_probs_arr, vals_arr, \
-            reward_arr, dones_arr, batches = self.memory.generate_batches()
-
+            reward_arr, dones_arr, batches = self.memory.generate_batches()            
             values = vals_arr
             advantage = np.zeros(len(reward_arr), dtype=np.float32)
 
@@ -216,8 +215,9 @@ class DRL_algorithm:
             values = torch.tensor(values).to(self.actor.device)
 
             for batch in batches:
-                img_states = torch.tensor(img_state_arr[batch], dtype=torch.float).to(self.actor.device)
-                lidar_states = torch.tensor(lidar_state_arr[batch], dtype=torch.float).to(self.actor.device)
+                img_states = torch.tensor(img_state_arr[batch], dtype=torch.float).to(self.actor.device)                
+                img_states = img_states.unsqueeze(1)
+                lidar_states = torch.tensor(lidar_state_arr[batch], dtype=torch.float).to(self.actor.device)                
                 old_probs = torch.tensor(old_probs_arr[batch]).to(self.actor.device)
                 actions = torch.tensor(action_arr[batch]).to(self.actor.device)
 
@@ -254,11 +254,11 @@ class DRL_algorithm:
         print("Training Finished")
 
     def save_model(self, f):        
-        self.actor.save_checkpoint(f)
-        self.critic.save_checkpoint(f)
+        self.actor.save_checkpoint()
+        self.critic.save_checkpoint()
         print("Models saved")
     
     def load_models(self, f):  
-        self.actor.load_checkpoint(f)
-        self.critic.load_checkpoint(f)      
+        self.actor.load_checkpoint()
+        self.critic.load_checkpoint()      
         print("Models loaded!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")

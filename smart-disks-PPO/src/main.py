@@ -76,11 +76,11 @@ class Environment:
 
         ###### MEMORY
         # Initial number of experience in storage to start the training
-        self.replay_exp_initial_condition = 50_000
+        
         self.memory = Memory(batch_size=32)
 
         ###### Deep Reinforcement Learning algorithm
-        self.drl_algorithm = DRL_algorithm(self.memory, self.replay_exp_initial_condition)
+        self.drl_algorithm = DRL_algorithm(self.memory)
 
         # Run parameters
         self.current_state = np.empty((200,200,3))
@@ -112,12 +112,13 @@ class Environment:
         
         load = False
         if load:
-            self.drl_algorithm.load_models(1572)            
-            self.drl_algorithm.epsilon = 0.55        
-            self.memory.experience_ind = 704527         
-            self.memory.storage = 704527 
-            self.memory.flag = False           
-            save_net_indicator = 1573
+            self.drl_algorithm.load_models(1)    
+
+        n_steps = 0
+        avg_score = 0
+        best_scores = 0
+        learn_iters = 0
+        N = 64    
             
         for epis in range(1, self.EPISODES+1):
             ##### Restart the initial parameters in each episode
@@ -205,64 +206,64 @@ class Environment:
                 ########### CAPTURE CURRENT STATE
                     
                 if self.start_new_cycle_trigger:
-                    for _ in range(2):                
-                        # Get current state
-                              
-                        print("Run time: ", self.run_time)
-                        self.current_state = self.get_capture()                    
-
-                        ###### EXECUTE THE ACTION 
-                        # Get lidar observation
-                        lidar_current_state = self.utils.lidar_observations(self.pursuiter.position[0], self.pursuiter.position[1], self.evasor)
-                        # Select an action
-                        action, prob, val = self.drl_algorithm.policy(self.current_state, lidar_current_state)
-                        print(action)  
-                        action = self.ACTIONS[action]                
-                        print(action)               
-                        # Execute the action selected
-                        self.pursuiter.controls(action= action)                               
-                        # Update the position of the lidar rectangles
-                        self.sensor.update_position(self.pursuiter.position)
-
-                        ######## DRAW ZONE
-                        # Draw the window with the updates
-                        # Draw lidar
-                        self.sensor.lidar(self.screen)
-                        # Draw background
-                        self.screen.fill((138,138,138))
-                        # Draw obstacles                    
-                        self.obstacles.render_walls()
-                        # Draw pursuiter
-                        self.pursuiter.spawn(self.screen)                         
-                        # Draw evasor
-                        self.evasor.spawn(self.screen)                                                           
-                        
-                        ####### END DRAW ZONE
-
-                        ###########  CAPTURE NEXT STATE 
-                                                      
-                        
-                        ######### GET REWARD
-                                            
-                        reward, self.done = self.utils.get_reward(self.pursuiter.robot, self.evasor.robot, self.pursuiter.position, self.evasor.position)                        
-
-                        #print(reward)
-                        
-                        # Activate and deactivate step triggers
-                        self.save_exp_trigger = True                   
-
-                    ########## SAVE EXPERIENCE 
-                    
-                        if self.save_exp_trigger:      
-                            # Add experience in memory                                                                          
-                            self.memory.store_memory(self.current_state.copy(), lidar_current_state, action, prob, val, reward, self.done)        
+                                    
+                    # Get current state
                             
-                            # Next step (TRAINING NETWORK)                                               
-                            self.save_exp_trigger = False                         
-                            self.run_time += 1                            
-                            pygame.display.update()
-                            if self.done:
-                                break
+                    print("Run time: ", self.run_time)
+                    self.current_state = self.get_capture()                    
+
+                    ###### EXECUTE THE ACTION 
+                    # Get lidar observation
+                    lidar_current_state = self.utils.lidar_observations(self.pursuiter.position[0], self.pursuiter.position[1], self.evasor)
+                    # Select an action
+                    action, prob, val = self.drl_algorithm.policy(self.current_state, lidar_current_state)
+                    print(action)  
+                    action_string = self.ACTIONS[action]                
+                    print(action)               
+                    # Execute the action selected
+                    self.pursuiter.controls(action= action_string)                               
+                    # Update the position of the lidar rectangles
+                    self.sensor.update_position(self.pursuiter.position)
+
+                    ######## DRAW ZONE
+                    # Draw the window with the updates
+                    # Draw lidar
+                    self.sensor.lidar(self.screen)
+                    # Draw background
+                    self.screen.fill((138,138,138))
+                    # Draw obstacles                    
+                    self.obstacles.render_walls()
+                    # Draw pursuiter
+                    self.pursuiter.spawn(self.screen)                         
+                    # Draw evasor
+                    self.evasor.spawn(self.screen)                                                           
+                    
+                    ####### END DRAW ZONE
+
+                    ###########  CAPTURE NEXT STATE 
+                                                    
+                    
+                    ######### GET REWARD
+                                        
+                    reward, self.done = self.utils.get_reward(self.pursuiter.robot, self.evasor.robot, self.pursuiter.position, self.evasor.position)                        
+
+                    #print(reward)
+                    
+                    # Activate and deactivate step triggers
+                    self.save_exp_trigger = True                   
+
+                ########## SAVE EXPERIENCE 
+                
+                    if self.save_exp_trigger:      
+                        # Add experience in memory                                                                          
+                        self.memory.store_memory(self.current_state.copy(), lidar_current_state, action, prob, val, reward, self.done)        
+                        n_steps += 1
+                        # Next step (TRAINING NETWORK)                                               
+                        self.save_exp_trigger = False                         
+                        self.run_time += 1                            
+                        pygame.display.update()
+                        if self.done:
+                            break
 
 
                     print("Training step")
@@ -271,10 +272,13 @@ class Environment:
 
                 if self.training_trigger:                
                     # Train the model
-                    #self.drl_algorithm.train()           
+                    if n_steps % N == 0:
+                        self.drl_algorithm.train()           
                     # Wait until the training has been completed.
-                    #while not self.drl_algorithm.training_finished:
-                    #    continue
+                        while not self.drl_algorithm.training_finished:
+                            continue
+                        learn_iters += 1
+                    
                     self.restart_params_trigger = True
            
                 # Update the display
@@ -283,39 +287,31 @@ class Environment:
             print("END RUN TIME")
             # Save scores of the episode
             self.record_scores.append(scores)            
-            
+            avg_score = np.mean(self.record_scores[-100:])
             
             # Check if the algorithm is still in the non-training phase.
-            if self.memory.storage >= self.drl_algorithm.replay_exp_initial_condition:
+            
                 # Save the model if the score of the episode is grater than 2500
-                if (scores >= 500):
-                    # Save the weights
-                    self.drl_algorithm.save_model(save_net_indicator)
-                    # Save network records
-                    with open("./records/save_network.txt", 'a') as file:
-                        file.write("Save: {0}, Episode: {1}/{2}, Score: {3}, Epsilon: {4}, Play_time: {5}, Spawn distance: {6}\n".format(save_net_indicator, epis, self.EPISODES, scores, self.drl_algorithm.epsilon, self.run_time, self.utils.spawn_eucl_dist))
-                    save_net_indicator += 1
+            if (avg_score > best_scores):
+                # Save the weights
+                best_scores = avg_score
+                self.drl_algorithm.save_model(save_net_indicator)
+                # Save network records
+                with open("../records/save_network.txt", 'a') as file:
+                    file.write("Save: {0}, Episode: {1}/{2}, Best Score: {3}, Play_time: {4}, Spawn distance: {5}\n".format(save_net_indicator, epis, self.EPISODES, best_scores, self.run_time, self.utils.spawn_eucl_dist))
+                save_net_indicator += 1
             # Save records and model each 100 episodes.
             if epis % 100 == 0:        
                 # Save scores and losses
-                with open("./records/save_records.txt", 'a') as file:
+                with open("../records/save_records.txt", 'a') as file:
                     file.write("Scores: {0}\n".format(self.record_scores))
                 
-                # Save memory data
-                data_ptr = pd.Series(self.memory.experience_ind)
-                data_ptr.to_csv("./records/data_ptr.csv", index=False, header=None, mode='w')
+                
 
                 
                 # Restart the record scores and losses
                 self.record_scores = []               
-            if epis % 500 == 0:
-                # Save model record
-                with open("./records/save_network.txt", 'a') as file:
-                    file.write("Save: {0}, Episode: {1}/{2}, Score: {3}, Epsilon: {4}, Play_time: {5}, Spawn distance: {6}\n".format(save_net_indicator, epis, self.EPISODES, scores, self.drl_algorithm.epsilon, self.run_time, self.utils.spawn_eucl_dist))
-                # Save the weights of the model
-                self.drl_algorithm.save_model(save_net_indicator)
-                # Increase the save model counter
-                save_net_indicator += 1
+            
 
             gc.collect()
             time.sleep(1)

@@ -1,4 +1,5 @@
 import numpy as np
+from PIL import Image
 
 class Memory:
     def __init__(self, batch_size):
@@ -29,9 +30,18 @@ class Memory:
                 batches
     
     def store_memory(self, img_state, lidar_state, action, probs, vals, reward, done):
-        print(img_state.shape)
+
+        img_state = Image.fromarray(img_state).convert('L')
+        img_state = img_state.rotate(-90)
+        img_state = img_state.transpose(Image.FLIP_LEFT_RIGHT)  
+        img_state = img_state.resize((84,84))
+        img_state = np.array(img_state) 
+        img_state = img_state / 255.0 
         self.img_states.append(img_state)
+
+        lidar_state = np.array(lidar_state) / 200.0
         self.lidar_states.append(lidar_state)
+        
         self.actions.append(action)
         self.probs.append(probs)
         self.vals.append(vals)
