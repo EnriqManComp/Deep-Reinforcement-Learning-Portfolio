@@ -29,6 +29,7 @@ class Memory:
                 batches
     
     def store_memory(self, img_state, lidar_state, action, probs, vals, reward, done):
+        print(img_state.shape)
         self.img_states.append(img_state)
         self.lidar_states.append(lidar_state)
         self.actions.append(action)

@@ -20,7 +20,6 @@ import pygame
 import sys
 import pandas as pd
 import numpy as np
-import tensorflow as tf
 from PIL import Image
 import gc
 import time
@@ -30,6 +29,7 @@ from evasor import Evasor
 from utils import Utils
 from obstacles import Obstacles
 from random_sample_exp_replay import ReplayBuffer
+from memory import Memory
 from DRL_algorithm import DRL_algorithm
 from sensors import Sensor
 
@@ -77,7 +77,7 @@ class Environment:
         ###### MEMORY
         # Initial number of experience in storage to start the training
         self.replay_exp_initial_condition = 50_000
-        self.memory = ReplayBuffer(max_size=1_000_000, pointer=0, screen=self.screen)
+        self.memory = Memory(batch_size=32)
 
         ###### Deep Reinforcement Learning algorithm
         self.drl_algorithm = DRL_algorithm(self.memory, self.replay_exp_initial_condition)
@@ -215,7 +215,8 @@ class Environment:
                         # Get lidar observation
                         lidar_current_state = self.utils.lidar_observations(self.pursuiter.position[0], self.pursuiter.position[1], self.evasor)
                         # Select an action
-                        action = self.drl_algorithm.policy(self.current_state, lidar_current_state)  
+                        action, prob, val = self.drl_algorithm.policy(self.current_state, lidar_current_state)
+                        print(action)  
                         action = self.ACTIONS[action]                
                         print(action)               
                         # Execute the action selected
@@ -253,9 +254,8 @@ class Environment:
                     ########## SAVE EXPERIENCE 
                     
                         if self.save_exp_trigger:      
-                            # Add experience in memory                   
-                            experience = [self.current_state.copy() / 255.0, lidar_current_state / 200.0, action, reward, self.done]
-                            self.memory.store_experience(experience)        
+                            # Add experience in memory                                                                          
+                            self.memory.store_memory(self.current_state.copy(), lidar_current_state, action, prob, val, reward, self.done)        
                             
                             # Next step (TRAINING NETWORK)                                               
                             self.save_exp_trigger = False                         
@@ -271,10 +271,10 @@ class Environment:
 
                 if self.training_trigger:                
                     # Train the model
-                    self.drl_algorithm.train()           
+                    #self.drl_algorithm.train()           
                     # Wait until the training has been completed.
-                    while not self.drl_algorithm.training_finished:
-                        continue
+                    #while not self.drl_algorithm.training_finished:
+                    #    continue
                     self.restart_params_trigger = True
            
                 # Update the display

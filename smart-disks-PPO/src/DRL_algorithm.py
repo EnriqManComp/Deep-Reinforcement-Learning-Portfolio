@@ -32,9 +32,12 @@ class ActorNetwork(nn.Module):
             nn.ReLU()            
         )
 
-        self.dense1 = nn.Linear(3200, 256)
-        self.dense2 = nn.Linear(256, self.n_actions)
-        self.softmax = nn.Softmax(dim=-1)
+        self.common_layers = nn.Sequential(
+            nn.Linear(3200, 256),
+            nn.ReLU(),
+            nn.Linear(256, self.n_actions),
+            nn.Softmax(dim=-1)
+        )
 
         # Optimizer
         self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
@@ -53,8 +56,7 @@ class ActorNetwork(nn.Module):
 
         X = torch.cat([X1, X2], dim=1)
 
-        X = nn.ReLU(self.dense1(X))
-        X = self.softmax(self.dense2(X))   
+        X = self.common_layers(X)   
 
         distribution = Categorical(X)
         
@@ -92,8 +94,11 @@ class CriticNetwork(nn.Module):
             nn.ReLU()            
         )
 
-        self.dense1 = nn.Linear(3200, 256)
-        self.dense2 = nn.Linear(256, 1)
+        self.common_layers = nn.Sequential(
+            nn.Linear(3200, 256),
+            nn.ReLU(),
+            nn.Linear(256,1)
+        )
 
         self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
 
@@ -101,17 +106,16 @@ class CriticNetwork(nn.Module):
         self.to(self.device)
     
     def forward(self, state):
-
+        
         X1 = self.input_1(state[0])
         X1 = X1.view(X1.size(0), -1)
-
+        
         X2 = self.input_2(state[1])
         X2 = X2.view(X2.size(0), -1)
-
+        
         X = torch.cat([X1, X2], dim=1)
 
-        X = nn.ReLU(self.dense1(X))
-        value = self.dense2(X)
+        value = self.common_layers(X)
         
         return value
     
@@ -131,14 +135,9 @@ class DRL_algorithm:
         self.training_finished = False
         self.update_network_counter = 1
         
-        # Epsilon greedy exploration parameters
-        self.epsilon = 1.0
-        self.epsilon_final = 0.05        
-        self.epsilon_interval = self.epsilon - self.epsilon_final
-        self.epsilon_greedy_frames = 300_000
-
+        
         self.memory = memory
-        self.replay_exp_initial_condition = replay_exp_initial_condition        
+               
         
         # Batch size
         self.batch_size = 32
@@ -161,52 +160,37 @@ class DRL_algorithm:
         self.gae_lambda = 0.95                        
 
     def policy(self, state, lidar_state):
-        if (np.random.uniform(0.0,1.0) < self.epsilon) or (self.memory.storage <= self.replay_exp_initial_condition): 
-            # If the random number is less than epsilon
-            # Choose a random action
-            action = int(np.random.choice(9,1))
-            # Counter of repeated action in the previous step
-            if self.p_action == action:
-                self.same_action_counter += 1
-            self.p_action = action
                                             
-            return action
-        else:
-            # Preprocessing state images                        
-            img_state = Image.fromarray(state).convert('L') 
-            img_state = img_state.rotate(-90)   
-            img_state = img_state.transpose(Image.FLIP_LEFT_RIGHT)          
-            img_state = img_state.resize((84, 84))                
-            img_state = np.array(img_state) / 255.0            
-            
-
-            # Expand dimensions             
-            img_state_tensor = torch.tensor(img_state).to(self.q_net.device)
-            img_state_tensor = img_state_tensor.unsqueeze(0)
-            img_state_tensor = img_state_tensor.unsqueeze(0)
-            # Lidar state
-            lidar_state = np.array(lidar_state) / 200.0
-            
-            lidar_state_tensor = torch.tensor(lidar_state).to(self.q_net.device)    
-            lidar_state_tensor = lidar_state_tensor.unsqueeze(0)
-            # Prediction            
-
-            prob_dist = self.actor([img_state_tensor.float(), lidar_state_tensor.float()])
-            value = self.critic([img_state_tensor.float(), lidar_state_tensor.float()])
-
-            probs = torch.squeeze(prob_dist.log_prob(action)).item()
-            action = torch.squeeze(action).item()
-            value = torch.squeeze(value).item()           
-                     
-            if self.p_action == action:
-                self.same_action_counter += 1
-            self.p_action = action
-
-            if self.same_action_counter == 30:                
-                action = int(np.random.choice(9,1))                                    
-            print("Action taken by the network.!!!!!!!!!!!!!!!!!")
-            return action, probs, value
+        # Preprocessing state images                        
+        img_state = Image.fromarray(state).convert('L') 
+        img_state = img_state.rotate(-90)   
+        img_state = img_state.transpose(Image.FLIP_LEFT_RIGHT)          
+        img_state = img_state.resize((84, 84))                
+        img_state = np.array(img_state) / 255.0            
         
+
+        # Expand dimensions             
+        img_state_tensor = torch.tensor(img_state).to(self.actor.device)
+        img_state_tensor = img_state_tensor.unsqueeze(0)
+        img_state_tensor = img_state_tensor.unsqueeze(0)
+        # Lidar state
+        lidar_state = np.array(lidar_state) / 200.0
+        
+        lidar_state_tensor = torch.tensor(lidar_state).to(self.actor.device)    
+        lidar_state_tensor = lidar_state_tensor.unsqueeze(0)
+        # Prediction            
+
+        prob_dist = self.actor([img_state_tensor.float(), lidar_state_tensor.float()])
+        
+        value = self.critic([img_state_tensor.float(), lidar_state_tensor.float()])
+        
+        action = prob_dist.sample()
+
+        probs = torch.squeeze(prob_dist.log_prob(action)).item()
+        action = torch.squeeze(action).item()
+        value = torch.squeeze(value).item()           
+        return action, probs, value
+    
     def train(self):
                   
         # Sampling minibatch                
