@@ -1,5 +1,0 @@
-Save: 1, Episode: 1/10000, Score: 5180.833457949392, Play_time: 292, Spawn distance: 105.48198042802561
-Save: 2, Episode: 7/10000, Score: 32359.839377183493, Play_time: 263, Spawn distance: 71.67923913163038
-Save: 3, Episode: 10/10000, Score: -6455.158763681478, Play_time: 299, Spawn distance: 126.66171567966332
-Save: 1, Episode: 1/10000, Best Score: 23.566497112344926, Play_time: 200, Spawn distance: 47.392359792086395
-Save: 2, Episode: 2/10000, Best Score: 4374.660766175904, Play_time: 160, Spawn distance: 70.43900323274288
