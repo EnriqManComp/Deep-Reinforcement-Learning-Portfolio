@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 
-path = "./records/save_records.txt"
+path = "/media/enrique/ae414e9e-3895-46c8-92d6-d4cb9803e8e8/enrique/Deep-Reinforcement-Learning-Portfolio/smart-disks-PPO/records/save_records.txt"
 
 
 records = pd.read_csv(path, header=None)

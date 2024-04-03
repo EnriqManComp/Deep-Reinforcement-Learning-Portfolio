@@ -39,10 +39,10 @@ class Utils:
             # x
             # Limit in x => 10 (wall limit) + 20 (robot) + 2 [32, 373]
             #x = np.random.randint(low= 20, high=180)
-            x = 90
+            x = 50
             # Limit in y => 10 (wall limit) + 20 (robot) + 2 [32, 378]
             #y = np.random.randint(low= 20, high=180)
-            y = 90
+            y = 50
 
             # Easy task           
             # Spawn the pursuiter within the evasor area of 100 pixels

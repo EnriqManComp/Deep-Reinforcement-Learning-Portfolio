@@ -16,6 +16,7 @@ class ActorNetwork(nn.Module):
         self.save_dir = os.path.join(save_root_dir, "actor_network_ppo")
         self.n_actions = n_actions
         # Common layers
+        '''
         self.input_1 = nn.Sequential(
             nn.Conv2d(in_channels=1, out_channels=32, kernel_size=8, stride=4),
             nn.ReLU(),
@@ -24,6 +25,7 @@ class ActorNetwork(nn.Module):
             nn.Conv2d(64, 64, kernel_size=3, stride=1),
             nn.ReLU()            
         )
+        '''
 
         self.input_2 = nn.Sequential(
             nn.Linear(4, 64),
@@ -33,7 +35,7 @@ class ActorNetwork(nn.Module):
         )
 
         self.common_layers = nn.Sequential(
-            nn.Linear(3200, 256),
+            nn.Linear(64, 256),
             nn.ReLU(),
             nn.Linear(256, self.n_actions),
             nn.Softmax(dim=-1)
@@ -48,13 +50,13 @@ class ActorNetwork(nn.Module):
 
     def forward(self, state):    
 
-        X1 = self.input_1(state[0])
-        X1 = X1.view(X1.size(0), -1)
+        #X1 = self.input_1(state[0])
+        #X1 = X1.view(X1.size(0), -1)
 
-        X2 = self.input_2(state[1])
-        X2 = X2.view(X2.size(0), -1)
+        X2 = self.input_2(state)
+        X = X2.view(X2.size(0), -1)
 
-        X = torch.cat([X1, X2], dim=1)
+        #X = torch.cat([X1, X2], dim=1)
 
         X = self.common_layers(X)   
 
@@ -70,14 +72,15 @@ class ActorNetwork(nn.Module):
         print(f"Model saved!!!")
 
     def load_checkpoint(self):
-        self.load_state_dict(torch.load(self.save_dir))
+        print(self.save_dir)
+        self.load_state_dict(torch.load("../model/actor_network_ppo"))
 
 class CriticNetwork(nn.Module):
     def __init__(self, learning_rate, chkpt_dir='../model/'):
         super(CriticNetwork, self).__init__()
 
         self.save_dir = os.path.join(chkpt_dir, "critic_network_ppo")
-
+        '''
         self.input_1 = nn.Sequential(
             nn.Conv2d(in_channels=1, out_channels=32, kernel_size=8, stride=4),
             nn.ReLU(),
@@ -86,6 +89,7 @@ class CriticNetwork(nn.Module):
             nn.Conv2d(64, 64, kernel_size=3, stride=1),
             nn.ReLU()            
         )
+        '''
 
         self.input_2 = nn.Sequential(
             nn.Linear(4, 64),
@@ -95,7 +99,7 @@ class CriticNetwork(nn.Module):
         )
 
         self.common_layers = nn.Sequential(
-            nn.Linear(3200, 256),
+            nn.Linear(64, 256),
             nn.ReLU(),
             nn.Linear(256,1)
         )
@@ -107,13 +111,13 @@ class CriticNetwork(nn.Module):
     
     def forward(self, state):
         
-        X1 = self.input_1(state[0])
-        X1 = X1.view(X1.size(0), -1)
+        #X1 = self.input_1(state[0])
+        #X1 = X1.view(X1.size(0), -1)
         
-        X2 = self.input_2(state[1])
-        X2 = X2.view(X2.size(0), -1)
+        X2 = self.input_2(state)
+        X = X2.view(X2.size(0), -1)
         
-        X = torch.cat([X1, X2], dim=1)
+        #X = torch.cat([X1, X2], dim=1)
 
         value = self.common_layers(X)
         
@@ -123,7 +127,7 @@ class CriticNetwork(nn.Module):
         torch.save(self.state_dict(), self.save_dir)
 
     def load_checkpoint(self):
-        self.load_state_dict(torch.load(self.save_dir))
+        self.load_state_dict(torch.load("../model/critic_network_ppo"))
 
     
 
@@ -162,17 +166,17 @@ class DRL_algorithm:
     def policy(self, state, lidar_state):
                                             
         # Preprocessing state images                        
-        img_state = Image.fromarray(state).convert('L') 
-        img_state = img_state.rotate(-90)   
-        img_state = img_state.transpose(Image.FLIP_LEFT_RIGHT)          
-        img_state = img_state.resize((84, 84))                
-        img_state = np.array(img_state) / 255.0            
+        #img_state = Image.fromarray(state).convert('L') 
+        #img_state = img_state.rotate(-90)   
+        #img_state = img_state.transpose(Image.FLIP_LEFT_RIGHT)          
+        #img_state = img_state.resize((84, 84))                
+        #img_state = np.array(img_state) / 255.0            
         
 
         # Expand dimensions             
-        img_state_tensor = torch.tensor(img_state).to(self.actor.device)
-        img_state_tensor = img_state_tensor.unsqueeze(0)
-        img_state_tensor = img_state_tensor.unsqueeze(0)
+        #img_state_tensor = torch.tensor(img_state).to(self.actor.device)
+        #img_state_tensor = img_state_tensor.unsqueeze(0)
+        #img_state_tensor = img_state_tensor.unsqueeze(0)
         # Lidar state
         lidar_state = np.array(lidar_state) / 200.0
         
@@ -180,9 +184,9 @@ class DRL_algorithm:
         lidar_state_tensor = lidar_state_tensor.unsqueeze(0)
         # Prediction            
 
-        prob_dist = self.actor([img_state_tensor.float(), lidar_state_tensor.float()])
+        prob_dist = self.actor(lidar_state_tensor.float())
         
-        value = self.critic([img_state_tensor.float(), lidar_state_tensor.float()])
+        value = self.critic(lidar_state_tensor.float())
         
         action = prob_dist.sample()
 
@@ -215,14 +219,14 @@ class DRL_algorithm:
             values = torch.tensor(values).to(self.actor.device)
 
             for batch in batches:
-                img_states = torch.tensor(img_state_arr[batch], dtype=torch.float).to(self.actor.device)                
-                img_states = img_states.unsqueeze(1)
+                #img_states = torch.tensor(img_state_arr[batch], dtype=torch.float).to(self.actor.device)                
+                #img_states = img_states.unsqueeze(1)
                 lidar_states = torch.tensor(lidar_state_arr[batch], dtype=torch.float).to(self.actor.device)                
                 old_probs = torch.tensor(old_probs_arr[batch]).to(self.actor.device)
                 actions = torch.tensor(action_arr[batch]).to(self.actor.device)
 
-                distributions = self.actor([img_states, lidar_states])
-                critic_value = self.critic([img_states, lidar_states])
+                distributions = self.actor(lidar_states)
+                critic_value = self.critic(lidar_states)
 
                 critic_value = torch.squeeze(critic_value)
 

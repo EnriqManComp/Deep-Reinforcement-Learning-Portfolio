@@ -120,7 +120,7 @@ class Environment:
         learn_iters = 0
         N = 64    
             
-        for epis in range(1, self.EPISODES+1):
+        for epis in range(701, self.EPISODES+1):
             ##### Restart the initial parameters in each episode
             self.done = False           
             
@@ -287,7 +287,7 @@ class Environment:
             print("END RUN TIME")
             # Save scores of the episode
             self.record_scores.append(scores)            
-            avg_score = np.mean(self.record_scores[-100:])
+            avg_score = np.mean(self.record_scores[-50:])
             
             # Check if the algorithm is still in the non-training phase.
             
