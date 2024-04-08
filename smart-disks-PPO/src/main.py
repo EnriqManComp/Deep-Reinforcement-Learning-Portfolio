@@ -59,7 +59,7 @@ class Environment:
 
         ##### CONSTANT PARAMETERS
         # Episodes
-        self.EPISODES = 10_000
+        self.EPISODES = 20_000
         # Possible Actions
         self.ACTIONS = {
             0: "NO ACTION",            
@@ -110,7 +110,7 @@ class Environment:
         ######## TRIGGERS
         save_net_indicator = 1        
         
-        load = False
+        load = True
         if load:
             self.drl_algorithm.load_models(1)    
 

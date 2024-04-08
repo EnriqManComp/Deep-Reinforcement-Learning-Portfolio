@@ -26,11 +26,12 @@ class Utils:
             print("SPAWING EVASOR...")
             # x
             # Limit in x => 10 (wall limit) + 20 (robot) + 2 [32, 373]
-            #x = np.random.uniform(low= 20, high= 180)
-            x = 150
+            x = np.random.uniform(low= 20, high= 180)
+            #x = 50
             # Limit in y => 10 (wall limit) + 20 (robot) + 2 [35, 378]
-            #y = np.random.uniform(low= 20, high= 180)  
-            y = 150          
+            y = np.random.uniform(low= 20, high= 180)  
+            #y = 50
+                     
         else:           
             print("SPAWING PURSUITER...")
             
@@ -38,11 +39,11 @@ class Utils:
             # Complex task
             # x
             # Limit in x => 10 (wall limit) + 20 (robot) + 2 [32, 373]
-            #x = np.random.randint(low= 20, high=180)
-            x = 50
+            x = np.random.randint(low= 20, high=180)
+            #x = 150
             # Limit in y => 10 (wall limit) + 20 (robot) + 2 [32, 378]
-            #y = np.random.randint(low= 20, high=180)
-            y = 50
+            y = np.random.randint(low= 20, high=180)
+            #y = 150
 
             # Easy task           
             # Spawn the pursuiter within the evasor area of 100 pixels
@@ -71,6 +72,7 @@ class Utils:
             x = np.random.randint(low= low_limit_x , high= high_limit_x)
             y = np.random.randint(low= low_limit_y, high= high_limit_y)'''
             # If the spawn overlap the evasor area reset the spawn
+            
             reference_pursuiter = pygame.draw.circle(screen, (0,0,255), (x, y), 8)            
 
             dist = self.eucl_distance(x, y, evasor_pos[0], evasor_pos[1])

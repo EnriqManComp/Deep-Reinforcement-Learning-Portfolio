@@ -27,16 +27,12 @@ class ActorNetwork(nn.Module):
         )
         '''
 
-        self.input_2 = nn.Sequential(
-            nn.Linear(4, 64),
-            nn.ReLU(),
-            nn.Linear(64, 64),
-            nn.ReLU()            
-        )
+        self.lstm1 = nn.LSTMCell(4,64)              
+        self.lstm2 = nn.LSTMCell(64, 64)
 
-        self.common_layers = nn.Sequential(
-            nn.Linear(64, 256),
-            nn.ReLU(),
+        
+        self.common_layers = nn.Sequential(                        
+            nn.Linear(64,256),
             nn.Linear(256, self.n_actions),
             nn.Softmax(dim=-1)
         )
@@ -52,14 +48,21 @@ class ActorNetwork(nn.Module):
 
         #X1 = self.input_1(state[0])
         #X1 = X1.view(X1.size(0), -1)
+        
+        h_t0 = torch.zeros(state.size(0), 64).to(self.device)
+        c_t0 = torch.zeros(state.size(0), 64).to(self.device)
+        h_t1 = torch.zeros(state.size(0), 64).to(self.device)
+        c_t1 = torch.zeros(state.size(0), 64).to(self.device)
 
-        X2 = self.input_2(state)
-        X = X2.view(X2.size(0), -1)
-
+        h_t, _ = self.lstm1(state, (h_t0, c_t0))
+        X2, _ = self.lstm2(h_t, (h_t1, c_t1))
+                
+        #X2, _ = self.input_2(state)        
+        #X = X2.view(X2.size(0), -1)
         #X = torch.cat([X1, X2], dim=1)
-
-        X = self.common_layers(X)   
-
+        X = self.common_layers(X2)
+        #X = self.common_layers(X)   
+        
         distribution = Categorical(X)
         
         return distribution
@@ -91,16 +94,13 @@ class CriticNetwork(nn.Module):
         )
         '''
 
-        self.input_2 = nn.Sequential(
-            nn.Linear(4, 64),
-            nn.ReLU(),
-            nn.Linear(64, 64),
-            nn.ReLU()            
-        )
+        self.lstm1 = nn.LSTMCell(4,64)              
+        self.lstm2 = nn.LSTMCell(64, 64)
 
         self.common_layers = nn.Sequential(
             nn.Linear(64, 256),
-            nn.ReLU(),
+            #nn.Linear(256, 256),
+            nn.ReLU(),            
             nn.Linear(256,1)
         )
 
@@ -113,13 +113,20 @@ class CriticNetwork(nn.Module):
         
         #X1 = self.input_1(state[0])
         #X1 = X1.view(X1.size(0), -1)
-        
-        X2 = self.input_2(state)
-        X = X2.view(X2.size(0), -1)
+        h_t0 = torch.zeros(state.size(0), 64).to(self.device)
+        c_t0 = torch.zeros(state.size(0), 64).to(self.device)
+        h_t1 = torch.zeros(state.size(0), 64).to(self.device)
+        c_t1 = torch.zeros(state.size(0), 64).to(self.device)
+
+
+        h_t, _ = self.lstm1(state, (h_t0, c_t0))
+        X2, _ = self.lstm2(h_t, (h_t1, c_t1))
+        #print(X2)
+        #X = X2.view(X2.size(0), -1)
         
         #X = torch.cat([X1, X2], dim=1)
 
-        value = self.common_layers(X)
+        value = self.common_layers(X2)
         
         return value
     
@@ -163,20 +170,8 @@ class DRL_algorithm:
         self.n_epochs = 10
         self.gae_lambda = 0.95                        
 
-    def policy(self, state, lidar_state):
-                                            
-        # Preprocessing state images                        
-        #img_state = Image.fromarray(state).convert('L') 
-        #img_state = img_state.rotate(-90)   
-        #img_state = img_state.transpose(Image.FLIP_LEFT_RIGHT)          
-        #img_state = img_state.resize((84, 84))                
-        #img_state = np.array(img_state) / 255.0            
+    def policy(self, lidar_state):                                            
         
-
-        # Expand dimensions             
-        #img_state_tensor = torch.tensor(img_state).to(self.actor.device)
-        #img_state_tensor = img_state_tensor.unsqueeze(0)
-        #img_state_tensor = img_state_tensor.unsqueeze(0)
         # Lidar state
         lidar_state = np.array(lidar_state) / 200.0
         
@@ -216,34 +211,41 @@ class DRL_algorithm:
                 advantage[t] = a_t
             advantage = torch.tensor(advantage).to(self.actor.device)
 
-            values = torch.tensor(values).to(self.actor.device)
+            values = torch.tensor(values).to(self.actor.device)            
 
-            for batch in batches:
+            for batch in batches:                
                 #img_states = torch.tensor(img_state_arr[batch], dtype=torch.float).to(self.actor.device)                
                 #img_states = img_states.unsqueeze(1)
-                lidar_states = torch.tensor(lidar_state_arr[batch], dtype=torch.float).to(self.actor.device)                
+                lidar_states = torch.tensor(lidar_state_arr[batch], dtype=torch.float).to(self.actor.device)                                
+                
                 old_probs = torch.tensor(old_probs_arr[batch]).to(self.actor.device)
+                
                 actions = torch.tensor(action_arr[batch]).to(self.actor.device)
-
+                
                 distributions = self.actor(lidar_states)
+                
                 critic_value = self.critic(lidar_states)
-
+                
                 critic_value = torch.squeeze(critic_value)
-
+                
                 new_probs = distributions.log_prob(actions)
+                
                 prob_ratio = new_probs.exp() / old_probs.exp()
-
+                
                 weighted_probs = advantage[batch] * prob_ratio
+                
                 weighted_clipped_probs = torch.clamp(prob_ratio, 1-self.policy_clip,
                                                  1+self.policy_clip) * advantage[batch]
+                
                 actor_loss = -torch.min(weighted_probs, weighted_clipped_probs).mean()
-
+                
                 returns = advantage[batch] + values[batch]
+                
                 critic_loss = (returns - critic_value) ** 2
                 critic_loss = critic_loss.mean()
-
-                total_loss = actor_loss + 0.5*critic_loss
                 
+                total_loss = actor_loss + 0.5*critic_loss
+                                                
                 self.actor.optimizer.zero_grad()
                 self.critic.optimizer.zero_grad()
                 total_loss.backward()
